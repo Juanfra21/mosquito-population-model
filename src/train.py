@@ -6,7 +6,7 @@ import numpy as np
 from src.config import CONFIG
 from src.model import LSTMModel
 
-def test_train_split_lstm(data, target, train_size, test_from_start, batch_size):
+def test_train_split(data, target, train_size, test_from_start, batch_size):
     # Select features and target based on target parameter
     if target == 1:
         y_col = 'population'
