@@ -1,0 +1,17 @@
+data:
+  weather_path: "./data/weather_data.csv"
+  population_path: "./data/population_data.csv"
+  selected_weather_columns:
+    - datetime
+    - temp
+    - humidity
+    - precip
+
+model:
+  batch_size: 16
+  hidden_size: 64
+  num_layers: 2
+  output_size: 1
+  learning_rate: 0.001
+  num_epochs: 50
+  train_size: 0.8
