@@ -1,2 +1,1 @@
-# mosquito-population-model
-Mosquito population model
+# Mosquito Population Model
