@@ -20,7 +20,7 @@ def main():
         y_test,
     ) = test_train_split(
         data,
-        target=1,
+        target=1, # 1 for 24 hour forecast, 2 for 48h, 3 for 72h
         train_size=CONFIG["model"]["train_size"],
         test_from_start=False,
         batch_size=CONFIG["model"]["batch_size"],
