@@ -25,23 +25,23 @@ def test_train_split(data, target, train_size, test_from_start, batch_size):
     # Time-based split
     split_date_train = int(train_size * len(data))
     if test_from_start:
-        X_train, X_test = (
-            X.iloc[: len(data) - split_date_train],
-            X.iloc[len(data) - split_date_train :],
-        )
-        y_train, y_test = (
-            y.iloc[: len(data) - split_date_train],
-            y.iloc[len(data) - split_date_train :],
-        )
+        X_train, X_test = X.iloc[: len(data) - split_date_train], X.iloc[len(data) - split_date_train :]
+        y_train, y_test = y.iloc[: len(data) - split_date_train], y.iloc[len(data) - split_date_train :]
+
     else:
         X_train, X_test = X.iloc[:split_date_train], X.iloc[split_date_train:]
         y_train, y_test = y.iloc[:split_date_train], y.iloc[split_date_train:]
 
-    # Further split train set into train and validation sets (assuming 80-20 split)
+    # Further split train set into train and validation sets (using 80-20 split)
     split_date_val = int(0.8 * len(X_train))
+    
+    if test_from_start:
+        X_train, X_val = X.iloc[: len(data) - split_date_val], X.iloc[len(data) - split_date_val :]
+        y_train, y_val = y.iloc[: len(data) - split_date_val], y.iloc[len(data) - split_date_val :]
 
-    X_train, X_val = X_train.iloc[:split_date_val], X_train.iloc[split_date_val:]
-    y_train, y_val = y_train.iloc[:split_date_val], y_train.iloc[split_date_val:]
+    else:
+        X_train, X_val = X_train.iloc[:split_date_val], X_train.iloc[split_date_val:]
+        y_train, y_val = y_train.iloc[:split_date_val], y_train.iloc[split_date_val:]
 
     # Convert to numpy arrays and then to tensors
     X_train_tensor = torch.tensor(X_train.values.astype(np.float32))

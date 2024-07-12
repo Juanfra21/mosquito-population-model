@@ -8,7 +8,7 @@ data:
     - precip
 
 model:
-  target: 2
+  target: 1
   batch_size: 16
   hidden_size: 64
   num_layers: 2
