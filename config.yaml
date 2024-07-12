@@ -9,10 +9,11 @@ data:
 
 model:
   target: 1
-  batch_size: 16
+  batch_size: 64
+  seq_length: 365
   hidden_size: 64
   num_layers: 2
   output_size: 1
-  learning_rate: 0.001
+  learning_rate: 0.00001
   num_epochs: 50
   train_size: 0.8

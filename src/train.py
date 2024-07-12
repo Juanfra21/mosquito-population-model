@@ -5,9 +5,11 @@ from sklearn.metrics import r2_score
 import numpy as np
 from src.config import CONFIG
 from src.model import LSTMModel
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
-def test_train_split(data, target, train_size, test_from_start, batch_size):
+def test_train_split(data, target, train_size, test_from_start, batch_size, seq_length):
     # Select features and target based on target parameter
     if target == 1:
         y_col = "population"
@@ -22,36 +24,46 @@ def test_train_split(data, target, train_size, test_from_start, batch_size):
     X = data.drop(columns=["date", "population", "population_2d", "population_3d"])
     y = data[y_col]
 
-    # Time-based split
-    split_date_train = int(train_size * len(data))
-    if test_from_start:
-        X_train, X_test = X.iloc[: len(data) - split_date_train], X.iloc[len(data) - split_date_train :]
-        y_train, y_test = y.iloc[: len(data) - split_date_train], y.iloc[len(data) - split_date_train :]
+    scaler = StandardScaler()
+    X = pd.DataFrame(scaler.fit_transform(X))
+    y = pd.Series(scaler.fit_transform(y.to_frame()).flatten())
 
+    # Create sequences
+    def create_sequences(X, y, seq_length):
+        Xs, ys = [], []
+        for i in range(len(X) - seq_length):
+            Xs.append(X.iloc[i:(i+seq_length)].values)
+            ys.append(y.iloc[i+seq_length])
+        return np.array(Xs), np.array(ys)
+
+    X, y = create_sequences(X, y, seq_length)
+
+    # Time-based split
+    split_date_train = int(train_size * len(X))
+    if test_from_start:
+        X_train, X_test = X[: len(X) - split_date_train], X[len(X) - split_date_train :]
+        y_train, y_test = y[: len(y) - split_date_train], y[len(y) - split_date_train :]
     else:
-        X_train, X_test = X.iloc[:split_date_train], X.iloc[split_date_train:]
-        y_train, y_test = y.iloc[:split_date_train], y.iloc[split_date_train:]
+        X_train, X_test = X[:split_date_train], X[split_date_train:]
+        y_train, y_test = y[:split_date_train], y[split_date_train:]
 
     # Further split train set into train and validation sets (using 80-20 split)
     split_date_val = int(0.8 * len(X_train))
     
     if test_from_start:
-        X_train, X_val = X.iloc[: len(data) - split_date_val], X.iloc[len(data) - split_date_val :]
-        y_train, y_val = y.iloc[: len(data) - split_date_val], y.iloc[len(data) - split_date_val :]
-
+        X_train, X_val = X[: len(X) - split_date_val], X[len(X) - split_date_val :]
+        y_train, y_val = y[: len(y) - split_date_val], y[len(y) - split_date_val :]
     else:
-        X_train, X_val = X_train.iloc[:split_date_val], X_train.iloc[split_date_val:]
-        y_train, y_val = y_train.iloc[:split_date_val], y_train.iloc[split_date_val:]
+        X_train, X_val = X_train[:split_date_val], X_train[split_date_val:]
+        y_train, y_val = y_train[:split_date_val], y_train[split_date_val:]
 
-    # Convert to numpy arrays and then to tensors
-    X_train_tensor = torch.tensor(X_train.values.astype(np.float32))
-    X_val_tensor = torch.tensor(X_val.values.astype(np.float32))
-
-    X_test_tensor = torch.tensor(X_test.values.astype(np.float32))
-    y_train_tensor = torch.tensor(y_train.values.astype(np.float32)).reshape(-1, 1)
-
-    y_val_tensor = torch.tensor(y_val.values.astype(np.float32)).reshape(-1, 1)
-    y_test_tensor = torch.tensor(y_test.values.astype(np.float32)).reshape(-1, 1)
+    # Convert to tensors
+    X_train_tensor = torch.tensor(X_train.astype(np.float32))
+    X_val_tensor = torch.tensor(X_val.astype(np.float32))
+    X_test_tensor = torch.tensor(X_test.astype(np.float32))
+    y_train_tensor = torch.tensor(y_train.astype(np.float32)).reshape(-1, 1)
+    y_val_tensor = torch.tensor(y_val.astype(np.float32)).reshape(-1, 1)
+    y_test_tensor = torch.tensor(y_test.astype(np.float32)).reshape(-1, 1)
 
     # Create DataLoader for training, validation, and test sets
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
@@ -67,25 +79,18 @@ def test_train_split(data, target, train_size, test_from_start, batch_size):
         train_loader,
         val_loader,
         test_loader,
-        X_train.values,
-        X_val.values,
-        X_test.values,
-        y_train.values,
-        y_val.values,
-        y_test.values,
+        X_train,
+        X_val,
+        X_test,
+        y_train,
+        y_val,
+        y_test,
     )
 
 
 def train_model(train_loader, val_loader, input_size, criterion):
-    model = LSTMModel(
-        input_size,
-        CONFIG["model"]["hidden_size"],
-        CONFIG["model"]["num_layers"],
-        CONFIG["model"]["output_size"],
-    )
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=CONFIG["model"]["learning_rate"]
-    )
+    model = LSTMModel(input_size, CONFIG["model"]["hidden_size"], CONFIG["model"]["num_layers"], CONFIG["model"]["output_size"], CONFIG["model"]["seq_length"])
+    optimizer = torch.optim.Adam(model.parameters(), lr=CONFIG["model"]["learning_rate"])
 
     for epoch in range(CONFIG["model"]["num_epochs"]):
         model.train()
@@ -119,10 +124,7 @@ def train_model(train_loader, val_loader, input_size, criterion):
             epoch_val_loss /= len(val_loader)
 
         # Print progress
-        if (epoch + 1) % 10 == 0:
-            print(
-                f'Epoch [{epoch+1}/{CONFIG["model"]["num_epochs"]}], Train Loss: {epoch_train_loss:.4f}, Val Loss: {epoch_val_loss:.4f}'
-            )
+        print(f'Epoch [{epoch+1}/{CONFIG["model"]["num_epochs"]}], Train Loss: {epoch_train_loss:.4f}, Val Loss: {epoch_val_loss:.4f}')
 
     return model
 
