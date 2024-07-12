@@ -6,8 +6,7 @@ import torch.nn as nn
 
 
 def main():
-    data = prepare_data()
-
+    
     (
         train_loader,
         val_loader,

@@ -20,6 +20,16 @@ def plot_relationships(data, x_column):
     plt.show()
 
 
+def plot_populations(data, x_column):
+    plt.figure(figsize=(10, 5))
+    plt.plot(data['date'], data[x_column])
+    plt.xlabel('Date')
+    plt.ylabel('Mosquito Population')
+    plt.title('Date vs Mosquito Population')
+    plt.grid(True)
+    plt.show()
+
+
 def plot_results(y_test, y_pred):
     plt.figure(figsize=(16, 6))
     plt.plot(range(len(y_test)), y_test, label="Actual", marker="o")
