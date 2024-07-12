@@ -1,6 +1,15 @@
 import matplotlib.pyplot as plt
 
-def plot_relationships(data, x_column):
+def plot_relationships(data, target):
+    if target == 1:
+        x_column = "population"
+    elif target == 2:
+        x_column = "population_2d"
+    elif target == 3:
+        x_column = "population_3d"
+    else:
+        raise ValueError("Invalid target value. Choose 1, 2 or 3")
+    
     # Set up the plot
     fig, axes = plt.subplots(2, 3, figsize=(16, 8))
     axes = axes.flatten()
@@ -20,7 +29,17 @@ def plot_relationships(data, x_column):
     plt.show()
 
 
-def plot_populations(data, x_column):
+def plot_populations(data, target):
+    if target == 1:
+        x_column = "population"
+    elif target == 2:
+        x_column = "population_2d"
+    elif target == 3:
+        x_column = "population_3d"
+    else:
+        raise ValueError("Invalid target value. Choose 1, 2 or 3")
+    
+    # Set up the plot
     plt.figure(figsize=(10, 5))
     plt.plot(data['date'], data[x_column])
     plt.xlabel('Date')
