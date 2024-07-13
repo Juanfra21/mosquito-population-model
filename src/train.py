@@ -6,7 +6,7 @@ import numpy as np
 from src.config import CONFIG
 from src.model import LSTMModel
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 def select_target(data, target):
     # Select features and target based on target parameter
@@ -38,7 +38,7 @@ def create_sequences(X, y, seq_length):
 def test_train_split(data, target, train_size, batch_size, seq_length):
     X, y = select_target(data, target)
 
-    scaler = StandardScaler()
+    scaler = MinMaxScaler(feature_range=(0,1))
     X = pd.DataFrame(scaler.fit_transform(X))
     y = pd.Series(scaler.fit_transform(y.to_frame()).flatten())
 
@@ -67,12 +67,11 @@ def test_train_split(data, target, train_size, batch_size, seq_length):
 
     # Create DataLoader for training, validation, and test sets
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-
     val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-
     test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return (
