@@ -8,8 +8,7 @@ from src.model import LSTMModel
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-
-def test_train_split(data, target, train_size, test_from_start, batch_size, seq_length):
+def select_target(data, target):
     # Select features and target based on target parameter
     if target == 1:
         y_col = "population"
@@ -24,38 +23,39 @@ def test_train_split(data, target, train_size, test_from_start, batch_size, seq_
     X = data.drop(columns=["date", "population", "population_2d", "population_3d"])
     y = data[y_col]
 
+    return X, y
+
+
+def create_sequences(X, y, seq_length):
+    Xs, ys = [], []
+    for i in range(len(X) - seq_length):
+        Xs.append(X.iloc[i:(i+seq_length)].values)
+        ys.append(y.iloc[i+seq_length])
+        
+    return np.array(Xs), np.array(ys)
+
+
+def test_train_split(data, target, train_size, batch_size, seq_length):
+    X, y = select_target(data, target)
+
     scaler = StandardScaler()
     X = pd.DataFrame(scaler.fit_transform(X))
     y = pd.Series(scaler.fit_transform(y.to_frame()).flatten())
 
     # Create sequences
-    def create_sequences(X, y, seq_length):
-        Xs, ys = [], []
-        for i in range(len(X) - seq_length):
-            Xs.append(X.iloc[i:(i+seq_length)].values)
-            ys.append(y.iloc[i+seq_length])
-        return np.array(Xs), np.array(ys)
-
     X, y = create_sequences(X, y, seq_length)
 
     # Time-based split
     split_date_train = int(train_size * len(X))
-    if test_from_start:
-        X_train, X_test = X[: len(X) - split_date_train], X[len(X) - split_date_train :]
-        y_train, y_test = y[: len(y) - split_date_train], y[len(y) - split_date_train :]
-    else:
-        X_train, X_test = X[:split_date_train], X[split_date_train:]
-        y_train, y_test = y[:split_date_train], y[split_date_train:]
+
+    X_train, X_test = X[:split_date_train], X[split_date_train:]
+    y_train, y_test = y[:split_date_train], y[split_date_train:]
 
     # Further split train set into train and validation sets (using 80-20 split)
     split_date_val = int(0.8 * len(X_train))
     
-    if test_from_start:
-        X_train, X_val = X[: len(X) - split_date_val], X[len(X) - split_date_val :]
-        y_train, y_val = y[: len(y) - split_date_val], y[len(y) - split_date_val :]
-    else:
-        X_train, X_val = X_train[:split_date_val], X_train[split_date_val:]
-        y_train, y_val = y_train[:split_date_val], y_train[split_date_val:]
+    X_train, X_val = X_train[:split_date_val], X_train[split_date_val:]
+    y_train, y_val = y_train[:split_date_val], y_train[split_date_val:]
 
     # Convert to tensors
     X_train_tensor = torch.tensor(X_train.astype(np.float32))
@@ -67,7 +67,7 @@ def test_train_split(data, target, train_size, test_from_start, batch_size, seq_
 
     # Create DataLoader for training, validation, and test sets
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 
     val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

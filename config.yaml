@@ -16,4 +16,4 @@ model:
   output_size: 1
   learning_rate: 0.00001
   num_epochs: 10
-  train_size: 0.8
+  train_size: 0.6

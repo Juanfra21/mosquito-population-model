@@ -22,7 +22,6 @@ def main():
         data,
         target=CONFIG["model"]["target"],
         train_size=CONFIG["model"]["train_size"],
-        test_from_start=False,
         batch_size=CONFIG["model"]["batch_size"],
         seq_length=CONFIG["model"]["seq_length"],
     )

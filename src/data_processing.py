@@ -115,4 +115,5 @@ def prepare_data():
     population_df = interpolate_population(load_population_data(CONFIG["data"]["population_path"]))
     population_df = create_future_population(population_df)
     weather_df = generate_weather_data(CONFIG["data"]["weather_path"])
+    
     return merge_population_and_weather(population_df, weather_df, shift=True)
