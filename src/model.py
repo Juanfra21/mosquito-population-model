@@ -15,8 +15,8 @@ class LSTMModel(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(hidden_size * seq_length, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, output_size)
-        )
+            nn.Linear(hidden_size, output_size))
+        
         
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
@@ -24,9 +24,7 @@ class LSTMModel(nn.Module):
         
         out, _ = self.lstm(x, (h0, c0))
         
-        # Use the entire sequence
         out = out.reshape(out.size(0), -1)
         out = self.fc(out)
         
         return out
-

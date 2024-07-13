@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import r2_score
 import numpy as np
+import pandas as pd
 from src.config import CONFIG
 from src.model import LSTMModel
-import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 def select_target(data, target):
@@ -35,16 +35,15 @@ def create_sequences(X, y, seq_length):
     return np.array(Xs), np.array(ys)
 
 
-def test_train_split(data, target, train_size, batch_size, seq_length):
-    X, y = select_target(data, target)
-
+def scale_data(X, y):
     scaler = MinMaxScaler(feature_range=(0,1))
     X = pd.DataFrame(scaler.fit_transform(X))
     y = pd.Series(scaler.fit_transform(y.to_frame()).flatten())
+    
+    return X, y
 
-    # Create sequences
-    X, y = create_sequences(X, y, seq_length)
 
+def split_data(X, y, train_size):
     # Time-based split
     split_date_train = int(train_size * len(X))
 
@@ -57,6 +56,10 @@ def test_train_split(data, target, train_size, batch_size, seq_length):
     X_train, X_val = X_train[:split_date_val], X_train[split_date_val:]
     y_train, y_val = y_train[:split_date_val], y_train[split_date_val:]
 
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+
+def create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_size):
     # Convert to tensors
     X_train_tensor = torch.tensor(X_train.astype(np.float32))
     X_val_tensor = torch.tensor(X_val.astype(np.float32))
@@ -65,26 +68,27 @@ def test_train_split(data, target, train_size, batch_size, seq_length):
     y_val_tensor = torch.tensor(y_val.astype(np.float32)).reshape(-1, 1)
     y_test_tensor = torch.tensor(y_test.astype(np.float32)).reshape(-1, 1)
 
-    # Create DataLoader for training, validation, and test sets
+    # Create TensorDatasets
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
     test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
 
+    # Create DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, val_loader, test_loader
 
-    return (
-        train_loader,
-        val_loader,
-        test_loader,
-        X_train,
-        X_val,
-        X_test,
-        y_train,
-        y_val,
-        y_test,
-    )
+
+def test_train_split(data, target, train_size, batch_size, seq_length):
+    X, y = select_target(data, target)
+    X, y = scale_data(X,y)
+    X, y = create_sequences(X, y, seq_length)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y, train_size)
+    train_loader, val_loader, test_loader = create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_size)
+
+    return train_loader, val_loader, test_loader, X_train, X_val, X_test, y_train, y_val, y_test
 
 
 def train_model(train_loader, val_loader, input_size, criterion):
@@ -143,8 +147,10 @@ def evaluate_model(model, test_loader, criterion):
 
     all_y_pred = np.concatenate(all_y_pred)
     all_targets = np.concatenate(all_targets)
-    r2 = r2_score(all_targets, all_y_pred)
+    mae = mean_absolute_error(all_targets, all_y_pred)
+    mape = mean_absolute_percentage_error(all_targets, all_y_pred)
+    mean_test_losses = np.mean(test_losses)
 
-    print(f"Test Loss: {np.mean(test_losses):.4f}, R^2 Score: {r2:.4f}")
+    print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
 
-    return all_y_pred
+    return all_y_pred, mean_test_losses, mae, mape
