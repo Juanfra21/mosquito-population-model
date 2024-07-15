@@ -36,6 +36,7 @@ def create_sequences(X, y, seq_length):
 
 
 def scale_data(X, y):
+    # Scale data using MinMaxScaler between 0 and 1
     x_scaler = MinMaxScaler(feature_range=(0,1))
     y_scaler = MinMaxScaler(feature_range=(0,1))
     X = pd.DataFrame(x_scaler.fit_transform(X))
@@ -152,21 +153,28 @@ def evaluate_model(model, test_loader, criterion, scaler):
     all_targets = []
     with torch.no_grad():
         for inputs, targets in test_loader:
+            # Make predictions
             outputs = model(inputs)
+            # Ensure non-negativity
+            outputs = torch.clamp(outputs, min=0.0)
+            # Calcualte loss
             test_loss = criterion(outputs, targets)
+
+            # Store results
             test_losses.append(test_loss.item())
             all_y_pred.append(outputs.numpy())
             all_targets.append(targets.numpy())
 
     all_y_pred = np.concatenate(all_y_pred)
     all_targets = np.concatenate(all_targets)
-
+    
+    # Descale the results and the real values
     all_y_pred, all_targets = descale_data(all_y_pred, all_targets, scaler)
 
+    # Calculate metrics
     mae = mean_absolute_error(all_targets, all_y_pred)
-    mape = mean_absolute_percentage_error(all_targets, all_y_pred)
     mean_test_losses = np.mean(test_losses)
 
-    print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
+    print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}")
 
-    return all_y_pred, all_targets, mean_test_losses, mae, mape
+    return all_y_pred, all_targets, mean_test_losses, mae

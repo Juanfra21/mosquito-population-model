@@ -11,7 +11,6 @@ def main():
 
     test_losses = []
     test_maes = []
-    test_mapes = []
     
     for train_size in CONFIG["model"]["train_sizes"]:
         print("-"*20)
@@ -27,11 +26,10 @@ def main():
 
         criterion = nn.MSELoss()
         model = train_model(train_loader=train_loader, val_loader=val_loader, input_size=X_train.shape[2], criterion=criterion)
-        y_pred, y_test, loss, mae, mape  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion, scaler=scaler)
+        y_pred, y_test, loss, mae  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion, scaler=scaler)
 
         test_losses.append(loss)
         test_maes.append(mae)
-        test_mapes.append(mape)
         
         # Plot the results
         plot_results(y_test, y_pred)
@@ -41,7 +39,6 @@ def main():
     print("-"*20)
     print(f" Mean Loss: {np.mean(test_losses)}")
     print(f" Mean MAE: {np.mean(test_maes)}")
-    print(f" Mean MAPE: {np.mean(test_mapes)}")
 
 
 if __name__ == "__main__":

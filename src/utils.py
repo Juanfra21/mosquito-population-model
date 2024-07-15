@@ -48,6 +48,25 @@ def plot_populations(data, target):
     plt.grid(True)
     plt.show()
 
+def plot_population_histogram(data, target):
+    if target == 1:
+        x_column = "population"
+    elif target == 2:
+        x_column = "population_2d"
+    elif target == 3:
+        x_column = "population_3d"
+    else:
+        raise ValueError("Invalid target value. Choose 1, 2 or 3")
+    
+    # Set up the plot
+    plt.figure(figsize=(10, 5))
+    plt.hist(data[x_column], bins=100, alpha=0.7, color='blue', edgecolor='black')
+    plt.grid(alpha=0.75)
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of mosquito Populations')
+    plt.show()
+
 
 def plot_results(y_test, y_pred):
     plt.figure(figsize=(16, 6))
@@ -60,3 +79,16 @@ def plot_results(y_test, y_pred):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
+
+def population_summary(data, target):
+    if target == 1:
+        x_column = "population"
+    elif target == 2:
+        x_column = "population_2d"
+    elif target == 3:
+        x_column = "population_3d"
+    else:
+        raise ValueError("Invalid target value. Choose 1, 2 or 3")
+    
+    print(data[x_column].describe())
