@@ -44,12 +44,18 @@ def scale_data(X, y):
     return X, y, y_scaler
 
 
-def split_data(X, y, train_size):
-    # Time-based split
-    split_date_train = int(train_size * len(X))
-
-    X_train, X_test = X[:split_date_train], X[split_date_train:]
-    y_train, y_test = y[:split_date_train], y[split_date_train:]
+def split_data(X, y, train_size, test_ratio=0.1):
+    # Determine the split point for the test set
+    test_size = int(test_ratio * len(X))
+    
+    # Ensure the training size does not exceed the total length minus the test size
+    train_size = int(train_size * len(X))
+    if train_size + test_size > len(X):
+        train_size = len(X) - test_size
+    
+    # Time-based split for train and test
+    X_train, X_test = X[:train_size], X[train_size:train_size + test_size]
+    y_train, y_test = y[:train_size], y[train_size:train_size + test_size]
 
     # Further split train set into train and validation sets (using 80-20 split)
     split_date_val = int(0.8 * len(X_train))
