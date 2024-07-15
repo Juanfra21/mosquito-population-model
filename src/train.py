@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from src.config import CONFIG
 from src.model import LSTMModel
-from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_error
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 
 def select_target(data, target):
     # Select features and target based on target parameter
