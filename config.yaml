@@ -16,4 +16,4 @@ model:
   output_size: 1
   learning_rate: 0.0001
   num_epochs: 10
-  train_sizes: [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+  train_sizes: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]

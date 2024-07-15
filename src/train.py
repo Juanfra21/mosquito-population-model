@@ -36,11 +36,12 @@ def create_sequences(X, y, seq_length):
 
 
 def scale_data(X, y):
-    scaler = MinMaxScaler(feature_range=(0,1))
-    X = pd.DataFrame(scaler.fit_transform(X))
-    y = pd.Series(scaler.fit_transform(y.to_frame()).flatten())
+    x_scaler = MinMaxScaler(feature_range=(0,1))
+    y_scaler = MinMaxScaler(feature_range=(0,1))
+    X = pd.DataFrame(x_scaler.fit_transform(X))
+    y = pd.Series(y_scaler.fit_transform(y.to_frame()).flatten())
     
-    return X, y
+    return X, y, y_scaler
 
 
 def split_data(X, y, train_size):
@@ -83,12 +84,12 @@ def create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_siz
 
 def test_train_split(data, target, train_size, batch_size, seq_length):
     X, y = select_target(data, target)
-    X, y = scale_data(X,y)
+    X, y, scaler = scale_data(X,y)
     X, y = create_sequences(X, y, seq_length)
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y, train_size)
     train_loader, val_loader, test_loader = create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_size)
 
-    return train_loader, val_loader, test_loader, X_train, X_val, X_test, y_train, y_val, y_test
+    return train_loader, val_loader, test_loader, X_train, X_val, X_test, y_train, y_val, y_test, scaler
 
 
 def train_model(train_loader, val_loader, input_size, criterion):
@@ -131,8 +132,14 @@ def train_model(train_loader, val_loader, input_size, criterion):
 
     return model
 
+def descale_data(y_test, y_pred, scaler):
+    # Inverse transform the data
+    y_pred = scaler.inverse_transform(y_pred)
+    y_test = scaler.inverse_transform(y_test)
+    
+    return y_pred, y_test
 
-def evaluate_model(model, test_loader, criterion):
+def evaluate_model(model, test_loader, criterion, scaler):
     model.eval()
     test_losses = []
     all_y_pred = []
@@ -147,10 +154,13 @@ def evaluate_model(model, test_loader, criterion):
 
     all_y_pred = np.concatenate(all_y_pred)
     all_targets = np.concatenate(all_targets)
+
+    all_y_pred, all_targets = descale_data(all_y_pred, all_targets, scaler)
+
     mae = mean_absolute_error(all_targets, all_y_pred)
     mape = mean_absolute_percentage_error(all_targets, all_y_pred)
     mean_test_losses = np.mean(test_losses)
 
     print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}, MAPE: {mape:.4f}")
 
-    return all_y_pred, mean_test_losses, mae, mape
+    return all_y_pred, all_targets, mean_test_losses, mae, mape

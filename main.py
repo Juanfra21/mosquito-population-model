@@ -17,7 +17,7 @@ def main():
         print("-"*20)
         print(f"Cross-Validation. Training using {train_size*100}% of the dataset")
         print("-"*20)
-        train_loader, val_loader, test_loader, X_train, X_val, X_test,  y_train,y_val, y_test = test_train_split(
+        train_loader, val_loader, test_loader, X_train, X_val, X_test,  y_train,y_val, y_test, scaler = test_train_split(
             data,
             target=CONFIG["model"]["target"],
             train_size=train_size,
@@ -27,7 +27,7 @@ def main():
 
         criterion = nn.MSELoss()
         model = train_model(train_loader=train_loader, val_loader=val_loader, input_size=X_train.shape[2], criterion=criterion)
-        y_pred, loss, mae, mape  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion)
+        y_pred, y_test, loss, mae, mape  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion, scaler=scaler)
 
         test_losses.append(loss)
         test_maes.append(mae)
