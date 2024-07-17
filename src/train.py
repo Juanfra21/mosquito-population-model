@@ -141,16 +141,17 @@ def train_model(train_loader, val_loader, input_size, criterion):
 
 def descale_data(y_test, y_pred, scaler):
     # Inverse transform the data
-    y_pred = scaler.inverse_transform(y_pred)
     y_test = scaler.inverse_transform(y_test)
+    y_pred = scaler.inverse_transform(y_pred)
     
-    return y_pred, y_test
+    
+    return y_test, y_pred
 
 def evaluate_model(model, test_loader, criterion, scaler):
     model.eval()
     test_losses = []
-    all_y_pred = []
     all_targets = []
+    all_y_pred = []    
     with torch.no_grad():
         for inputs, targets in test_loader:
             # Make predictions
@@ -162,14 +163,14 @@ def evaluate_model(model, test_loader, criterion, scaler):
 
             # Store results
             test_losses.append(test_loss.item())
-            all_y_pred.append(outputs.numpy())
             all_targets.append(targets.numpy())
+            all_y_pred.append(outputs.numpy()) 
 
-    all_y_pred = np.concatenate(all_y_pred)
     all_targets = np.concatenate(all_targets)
+    all_y_pred = np.concatenate(all_y_pred)
     
     # Descale the results and the real values
-    all_y_pred, all_targets = descale_data(all_y_pred, all_targets, scaler)
+    all_targets, all_y_pred  = descale_data(all_targets, all_y_pred, scaler)
 
     # Calculate metrics
     mae = mean_absolute_error(all_targets, all_y_pred)
@@ -177,4 +178,4 @@ def evaluate_model(model, test_loader, criterion, scaler):
 
     print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}")
 
-    return all_y_pred, all_targets, mean_test_losses, mae
+    return all_targets, all_y_pred, mean_test_losses, mae

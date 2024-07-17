@@ -26,7 +26,7 @@ def main():
 
         criterion = nn.MSELoss()
         model = train_model(train_loader=train_loader, val_loader=val_loader, input_size=X_train.shape[2], criterion=criterion)
-        y_pred, y_test, loss, mae  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion, scaler=scaler)
+        y_test, y_pred, loss, mae  = evaluate_model(model=model, test_loader=test_loader, criterion=criterion, scaler=scaler)
 
         test_losses.append(loss)
         test_maes.append(mae)
