@@ -45,7 +45,7 @@ def scale_data(X, y):
     return X, y, y_scaler
 
 
-def split_data(X, y, train_size, test_ratio=0.1):
+def split_data(X, y, train_size, test_ratio=0.5):
     # Determine the split point for the test set
     test_size = int(test_ratio * len(X))
     

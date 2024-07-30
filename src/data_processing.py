@@ -105,8 +105,8 @@ def merge_population_and_weather(population_df, weather_df, shift):
     # Merge population and weather data
     data = pd.merge(population_df, weather_df, on="date", how="left")
 
-    # Create a new column indicating if the date is 2004 or before
-    data['is_2004_or_before'] = (data['date'].dt.year <= 2004).astype(int)
+    # Smooth data using a 3 week rolling window
+    data["population"] = data["population"].rolling(window=28).mean().fillna(method='ffill')
 
     return data
 
