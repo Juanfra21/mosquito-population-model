@@ -66,3 +66,6 @@ model_5:
   num_epochs: 30
   train_size: 0.8
   population_rolling_window: 4
+
+model_key: 'model_5'
+data_testing_path: 'data/mosquito_pop_weather_data.csv'
