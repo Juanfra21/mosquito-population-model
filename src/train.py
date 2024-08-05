@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
-from src.config import CONFIG
 from src.model import LSTMModel
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import MinMaxScaler
 
@@ -31,7 +30,7 @@ def create_sequences(X, y, seq_length):
     for i in range(len(X) - seq_length):
         Xs.append(X.iloc[i:(i+seq_length)].values)
         ys.append(y.iloc[i+seq_length])
-        
+
     return np.array(Xs), np.array(ys)
 
 
@@ -41,26 +40,26 @@ def scale_data(X, y):
     y_scaler = MinMaxScaler(feature_range=(0,1))
     X = pd.DataFrame(x_scaler.fit_transform(X))
     y = pd.Series(y_scaler.fit_transform(y.to_frame()).flatten())
-    
+
     return X, y, y_scaler
 
 
-def split_data(X, y, train_size, test_ratio=0.5):
-    # Determine the split point for the test set
-    test_size = int(test_ratio * len(X))
-    
-    # Ensure the training size does not exceed the total length minus the test size
+def split_data(X, y, train_size):
+    # Calculate the sizes of the train and test sets
     train_size = int(train_size * len(X))
+    test_size = len(X) - train_size
+
+    # Ensure the split does not exceed the total length
     if train_size + test_size > len(X):
         train_size = len(X) - test_size
-    
+
     # Time-based split for train and test
-    X_train, X_test = X[:train_size], X[train_size:train_size + test_size]
-    y_train, y_test = y[:train_size], y[train_size:train_size + test_size]
+    X_train, X_test = X[:train_size], X[train_size:]
+    y_train, y_test = y[:train_size], y[train_size:]
 
     # Further split train set into train and validation sets (using 80-20 split)
     split_date_val = int(0.8 * len(X_train))
-    
+
     X_train, X_val = X_train[:split_date_val], X_train[split_date_val:]
     y_train, y_val = y_train[:split_date_val], y_train[split_date_val:]
 
@@ -85,7 +84,7 @@ def create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_siz
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    
+
     return train_loader, val_loader, test_loader
 
 
@@ -99,11 +98,11 @@ def test_train_split(data, target, train_size, batch_size, seq_length):
     return train_loader, val_loader, test_loader, X_train, X_val, X_test, y_train, y_val, y_test, scaler
 
 
-def train_model(train_loader, val_loader, input_size, criterion):
-    model = LSTMModel(input_size, CONFIG["model"]["hidden_size"], CONFIG["model"]["num_layers"], CONFIG["model"]["output_size"], CONFIG["model"]["seq_length"])
-    optimizer = torch.optim.Adam(model.parameters(), lr=CONFIG["model"]["learning_rate"])
+def train_model(train_loader, val_loader, input_size, criterion, hidden_size, num_layers, output_size, seq_length, learning_rate, num_epochs):
+    model = LSTMModel(input_size, hidden_size, num_layers, output_size, seq_length)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    for epoch in range(CONFIG["model"]["num_epochs"]):
+    for epoch in range(num_epochs):
         model.train()
         epoch_train_loss = 0.0
 
@@ -135,7 +134,7 @@ def train_model(train_loader, val_loader, input_size, criterion):
             epoch_val_loss /= len(val_loader)
 
         # Print progress
-        print(f'Epoch [{epoch+1}/{CONFIG["model"]["num_epochs"]}], Train Loss: {epoch_train_loss:.4f}, Val Loss: {epoch_val_loss:.4f}')
+        print(f'Epoch [{epoch+1}/{num_epochs}], Train Loss: {epoch_train_loss:.4f}, Val Loss: {epoch_val_loss:.4f}')
 
     return model
 
@@ -143,15 +142,15 @@ def descale_data(y_test, y_pred, scaler):
     # Inverse transform the data
     y_test = scaler.inverse_transform(y_test)
     y_pred = scaler.inverse_transform(y_pred)
-    
-    
+
+
     return y_test, y_pred
 
 def evaluate_model(model, test_loader, criterion, scaler):
     model.eval()
     test_losses = []
     all_targets = []
-    all_y_pred = []    
+    all_y_pred = []
     with torch.no_grad():
         for inputs, targets in test_loader:
             # Make predictions
@@ -164,18 +163,24 @@ def evaluate_model(model, test_loader, criterion, scaler):
             # Store results
             test_losses.append(test_loss.item())
             all_targets.append(targets.numpy())
-            all_y_pred.append(outputs.numpy()) 
+            all_y_pred.append(outputs.numpy())
 
     all_targets = np.concatenate(all_targets)
     all_y_pred = np.concatenate(all_y_pred)
-    
+
     # Descale the results and the real values
     all_targets, all_y_pred  = descale_data(all_targets, all_y_pred, scaler)
 
+    # Flatten arrays to be 1-dimensional
+    all_targets = all_targets.flatten()
+    all_y_pred = all_y_pred.flatten()
+
     # Calculate metrics
     mae = mean_absolute_error(all_targets, all_y_pred)
+    mse = mean_squared_error(all_targets, all_y_pred)
+    rmse = np.sqrt(mse)
     mean_test_losses = np.mean(test_losses)
 
-    print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}")
+    print(f"Test Loss: {mean_test_losses:.4f}, MAE: {mae:.4f}, MSE: {mse:.4f}, RMSE: {rmse:.4f}")
 
-    return all_targets, all_y_pred, mean_test_losses, mae
+    return all_targets, all_y_pred, mean_test_losses, mae, mse, rmse
